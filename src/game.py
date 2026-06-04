@@ -1,62 +1,75 @@
-import random
 import pygame
+import random
+import time
+from classes import banana, player, puntaje, vidas
 
 pygame.init()
 
-class puntaje:
-    def __init__(self):
-        self.score = 0
+lost = pygame.mixer.Sound("assets/sounds/PERDER.wav")
+coin = pygame.mixer.Sound("assets/sounds/recoleccion.wav")
+bg = pygame.image.load("assets/images/fondo.jpeg")
+screen = pygame.display.set_mode((1024, 700))
+blanco = (255, 255, 255)
+clock = pygame.time.Clock()
 
-class vidas:
-    def __init__(self):
-        self.lives = 3
-        self.rect = pygame.Rect(0, 0, 50, 50)
-
-puntaje = puntaje()
-vidas = vidas()
+# Crear instancias de las clases
+banana_obj = banana()
+player_obj = player()
+puntaje_obj = puntaje
+vidas_obj = vidas
 
 
-class banana(pygame.sprite.Sprite):
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-        self.sp_banana = pygame.image.load('assets/images/bananas.png')
-        self.image = self.sp_banana
-        self.rect = self.image.get_rect()
-        self.rect.x = random.randint(0, 800)
-        self.rect.y = 0
-        self.x = self.rect.x
-        self.y = self.rect.y
+while True:
+    clock.tick(60)  # 60 FPS
     
-    def move(self):
-        self.rect.y += 10
-        self.y = self.rect.y
-    
-    def delete(self):
-        global vidas
-        vidas.lives -= 1
-        self.kill()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            exit()
 
-
-class player(pygame.sprite.Sprite):
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-        self.x = 550
-        self.sp_player = pygame.image.load('assets/images/monito.png')
-        self.image = self.sp_player
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (self.x, 600)
+    screen.blit(bg, (0, 0))
     
-    def move(self, direction):
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_a] and self.x > 0:
-            self.x -= 20
-        elif keys[pygame.K_d] and self.x < 750:
-            self.x += 20
+    # Llamar a los movimientos
+    banana_obj.move()
+    player_obj.move(None)
     
-    def comer(self, banana):
-        if self.sprite.collide_rect(self, banana):
-            global puntaje
-            puntaje += 1
-            banana.kill()
-            pygame.mixer.Sound('assets/sounds/coin.mp3').play()
+    # Actualizar rect del jugador con su nueva posición x
+    player_obj.rect.x = player_obj.x
+    
+    screen.blit(banana_obj.sp_banana, (banana_obj.x, banana_obj.y))
+    screen.blit(player_obj.sp_player, (player_obj.x, player_obj.rect.y))
+    fuente = pygame.font.SysFont("comic sans ms", 35, 1, 1)
+    texto1 = fuente.render("puntos: " + str(puntaje_obj.score), 1, blanco)
+    texto2 = fuente.render("vidas: " + str(vidas_obj.lives), 1, blanco)
+    screen.blit(texto1, (50, 50))
+    screen.blit(texto2, (50, 100))
 
+    if player_obj.rect.colliderect(banana_obj.rect):
+        coin.play()
+        puntaje_obj.score += 1
+        banana_obj.rect.x = random.randint(0, 750)
+        banana_obj.rect.y = random.randint(0, 0)
+        banana_obj.x = banana_obj.rect.x
+        banana_obj.y = banana_obj.rect.y
+
+    if player_obj.rect.colliderect(vidas_obj.rect):
+        lost.play()
+        vidas_obj.lives -= 1
+        vidas_obj.rect.x = random.randint(0, 750)
+        vidas_obj.rect.y = random.randint(0, 550)
+
+    if vidas_obj.lives <= 0:
+        lost.play()
+        time.sleep(7)
+        print("Game Over")
+        pygame.quit()
+        exit()
+    
+    if banana_obj.rect.y > 800:
+        banana_obj.delete()
+        banana_obj.rect.x = random.randint(0, 750)
+        banana_obj.rect.y = random.randint(0, 0)
+        banana_obj.x = banana_obj.rect.x
+        banana_obj.y = banana_obj.rect.y
+
+    pygame.display.flip()
